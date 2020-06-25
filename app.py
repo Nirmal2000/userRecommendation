@@ -42,10 +42,10 @@ def newpost():
 def newuser():
     data = request.get_json()
     user_id = data['user_id']
-    vector = np.zeros((517))
     
     categories = catCol.find_one({})['Categories']
     categories = pickle.loads(categories)
+    vector = np.zeros((len(categories)))
     user_embed = embedCol.find_one({})['Matrix']
     user_embed = pickle.loads(user_embed)
 
@@ -71,7 +71,7 @@ def follows():
 
 @app.route('/train',methods=['GET','POST'])
 def train():
-    redisClient.flushall()
+    redisClient.flushdb()
     return "Cache flushed"
 
 if __name__ == "__main__":
