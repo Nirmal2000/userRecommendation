@@ -8,14 +8,17 @@ from functions import get_sim, add_user
 import os
 
 app = Flask(__name__)
+
+''' Recommendation MongoDB URI '''
 cluster = MongoClient('mongodb+srv://nirmal:2000@cluster0-2aasp.mongodb.net/<dbname>?retryWrites=true&w=majority')
-#redisClient = redis.from_url(url=os.getenv('REDIS_URL'),charset='utf-8',decode_responses=True)
+
 redisClient = redis.Redis(charset='utf-8',decode_responses=True)
+
+''' Collection cursors from recommendation database '''
 col = cluster.Users.User_Embeddings
 folCollection = cluster.Users.Follows
 posted = cluster.Users.Posted
-catCol = cluster.Users.Categories
-embedCol = cluster.Users.Embedding_Matrix
+
 
 @app.route('/')
 def home():
@@ -43,11 +46,12 @@ def newuser():
     data = request.get_json()
     user_id = data['user_id']
     
-    categories = catCol.find_one({})['Categories']
-    categories = pickle.loads(categories)
+    ''' Loading categories dictionary from hard disk '''
+    categories = pickle.load(open('categories.pkl','rb'))
     vector = np.zeros((len(categories)))
-    user_embed = embedCol.find_one({})['Matrix']
-    user_embed = pickle.loads(user_embed)
+
+    ''' Loading Embedding Matrix from hard disk '''
+    user_embed = pickle.load(open('user_embeddings.pkl','rb'))
 
     for category in data['categories']:
         if categories.get(category,-1) != -1:
@@ -56,7 +60,10 @@ def newuser():
     embed = np.matmul(vector,user_embed)
     del user_embed
     del categories
+
+    ''' Inserting new user's embedding to User_Embeddings '''
     col.insert_one({'user_id':user_id,'user_embed':list(embed)})
+
     return "Added user"
 
 @app.route('/follows',methods=['POST'])
@@ -66,6 +73,8 @@ def follows():
     followees = data['followees_id']
     redisClient.zrem(user_id,*followees)
     foldict = [{'user_id':x,'follower_id':user_id} for x in followees]
+
+    ''' Adding follower-followee pair to Follows collection '''
     folCollection.insert_many(foldict)
     return "Updated"
 

@@ -6,8 +6,12 @@ def get_sim(i,j):
   return 1 - spatial.distance.cosine(i,j)
 
 def add_user(key,col,redisClient,posted):
+    ''' Getting all users' embeddings '''
     allCollections = list(col.find())
+
+    ''' Getting embedding for given user_id from Collection '''
     cur_doc = list(col.find({ 'user_id' : key }))[0]
+
     embed = cur_doc['user_embed']
 
     for doc in allCollections:
